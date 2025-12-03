@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>🌹لوحة التميز السلوكي </title>
+  <div class="school-info">
+  <p>مدرسة العزة الابتدائية والمتوسطة بوادي مناخـل</p>
+  <p>الموجهة الطلابية: <strong>جميلة الفيفي</strong></p>
+  <p>مديرة المدرسة: <strong>نورة المالكي</strong></p>
+</div>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #ffe4f2;
+      text-align: center;
+      overflow-x: hidden;
+    }
+    h1 { margin-top: 20px; }
+
+    .controls { margin: 20px; }
+    .controls input, .controls button {
+      margin: 5px; padding: 8px;
+    }
+    .school-info {
+      background: #fff0fa;
+      border: 2px solid #ffb6d9;
+      padding: 10px;
+      margin: 10px auto;
+      width: fit-content;
+      border-radius: 10px;
+      font-size: 18px;
+      line-height: 1.6;
+    }
+    .board {
+      display: flex; justify-content: center; flex-wrap: wrap;
+      gap: 15px; margin-top: 20px;
+    }
+
+    .column {
+      background: linear-gradient(#fdfdfd, #ddd);
+      border-radius: 8px; padding: 5px; width: 90px;
+      display: flex; flex-direction: column-reverse;
+      align-items: center; position: relative;
+      cursor: pointer;
+    }
+
+    .circle {
+      width: 40px; height: 40px; margin: 4px 0;
+      border-radius: 50%; background: dodgerblue;
+    }
+
+    .student {
+      position: absolute; bottom: 0; width: 40px;
+      transition: bottom 0.5s;
+    }
+
+    .name { margin-top: 8px; font-weight: bold; }
+
+    .actions { display: flex; gap: 5px; margin-top: 5px; }
+    .actions button {
+      border: none; background: none; cursor: pointer;
+      font-size: 16px;
+    }
+
+    /* 🎉 مؤثرات الاحتفال */
+    .confetti {
+      position: fixed; width: 10px; height: 10px; top: -10px;
+      animation: fall 3s linear forwards;
+    }
+    @keyframes fall {
+      to { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🌹 لوحة التميز السلوكي 🌹</h1>
+
+  <div class="controls">
+    <input type="text" id="studentName" placeholder="اسم الطالبة">
+    <button onclick="addStudent()">➕ إضافة طالبة</button>
+    <button onclick="resetProgress()">🔄 تصفير الكل</button>
+  </div>
+
+  <div class="board" id="board"></div>
+
+  <!-- 🔊 صوت تشجيع -->
+  <audio id="cheerSound" src="https://www.soundjay.com/human/applause-8.mp3"></audio>
+
+  <script>
+    let students = JSON.parse(localStorage.getItem("studentsData")) || [
+      { name: "هدى", levels: 5 },
+      { name: "شذى", levels: 5 },
+      { name: "عفاف", levels: 5 }
+    ];
+    let progress = JSON.parse(localStorage.getItem("studentProgress")) || {};
+    const board = document.getElementById("board");
+
+    function renderBoard() {
+      board.innerHTML = "";
+      students.forEach((student, index) => {
+        const col = document.createElement("div");
+        col.classList.add("column");
+        col.dataset.index = index;
+
+        // 🌹 صورة وردة بدل البنت
+        const img = document.createElement("img");
+        img.src = "https://cdn-icons-png.flaticon.com/512/201/201822.png";
+        img.classList.add("student");
+
+        // إنشاء المستويات
+        for (let i = 0; i < student.levels; i++) {
+          const circle = document.createElement("div");
+          circle.classList.add("circle");
+          col.appendChild(circle);
+        }
+
+        // اسم الطالبة
+        const name = document.createElement("div");
+        name.classList.add("name");
+        name.textContent = student.name;
+        col.appendChild(name);
+
+        // أزرار تعديل وحذف (خارج حدث العمود)
+        const actions = document.createElement("div");
+        actions.classList.add("actions");
+
+        const editBtn = document.createElement("button");
+        editBtn.textContent = "✏️";
+        editBtn.onclick = (e) => { e.stopPropagation(); editStudent(index); };
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.textContent = "🗑️";
+        deleteBtn.onclick = (e) => { e.stopPropagation(); deleteStudent(index); };
+
+        actions.appendChild(editBtn);
+        actions.appendChild(deleteBtn);
+        col.appendChild(actions);
+
+        col.appendChild(img);
+        board.appendChild(col);
+
+        // استرجاع التقدم
+        let level = progress[student.name] || 0;
+        img.style.bottom = `${level * 48}px`;
+        col.dataset.level = level;
+      });
+      bindEvents();
+    }
+
+    function bindEvents() {
+      document.querySelectorAll(".column").forEach(col => {
+        col.addEventListener("click", (e) => {
+          if (e.target.tagName === "BUTTON") return; // ✅ تجاهل الأزرار
+          const index = col.dataset.index;
+          const student = students[index];
+          const img = col.querySelector(".student");
+          let level = parseInt(col.dataset.level);
+          const maxLevels = student.levels;
+
+          if (level < maxLevels - 1) {
+            level++;
+            col.dataset.level = level;
+            img.style.bottom = `${level * 48}px`;
+            progress[student.name] = level;
+            saveData();
+
+            if (level === maxLevels - 1) celebrate(student.name);
+          }
+        });
+      });
+    }
+
+    // ➕ إضافة طالبة (5 مستويات افتراضيًا)
+    function addStudent() {
+      const name = document.getElementById("studentName").value.trim();
+      if (name) {
+        students.push({ name, levels: 5 });
+        saveData();
+        renderBoard();
+        document.getElementById("studentName").value = "";
+      }
+    }
+
+    // ✏️ تعديل اسم الطالبة
+    function editStudent(index) {
+      const newName = prompt("أدخل الاسم الجديد للطالبة:", students[index].name);
+      if (newName) {
+        const oldName = students[index].name;
+        students[index].name = newName;
+        progress[newName] = progress[oldName] || 0;
+        delete progress[oldName];
+        saveData();
+        renderBoard();
+      }
+    }
+
+    // 🗑️ حذف طالبة
+    function deleteStudent(index) {
+      if (confirm(`هل تريد حذف ${students[index].name}؟`)) {
+        delete progress[students[index].name];
+        students.splice(index, 1);
+        saveData();
+        renderBoard();
+      }
+    }
+
+    // 🔄 تصفير الكل
+    function resetProgress() {
+      progress = {};
+      localStorage.setItem("studentProgress", JSON.stringify(progress));
+      renderBoard();
+    }
+
+    // 🎉 احتفال
+    function celebrate(name) {
+      document.getElementById("cheerSound").play();
+      for (let i = 0; i < 50; i++) {
+        const confetti = document.createElement("div");
+        confetti.classList.add("confetti");
+        confetti.style.left = Math.random() * window.innerWidth + "px";
+        confetti.style.backgroundColor = ["gold","red","blue","green","purple"][Math.floor(Math.random()*5)];
+        document.body.appendChild(confetti);
+        setTimeout(() => confetti.remove(), 3000);
+      }
+      alert(`🌹 مبروك للطالبة ${name} وصلت لأعلى درجة!`);
+    }
+
+    function saveData() {
+      localStorage.setItem("studentsData", JSON.stringify(students));
+      localStorage.setItem("studentProgress", JSON.stringify(progress));
+    }
+
+    renderBoard();
+  </script>
+</body>
+</html>
